@@ -1,2 +1,0 @@
-# parcingcsv
-хуй
