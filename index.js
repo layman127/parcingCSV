@@ -1,9 +1,6 @@
 import fs from 'fs';
 import axios from 'axios';
 import { shopdata } from './shopdata.js';
-// Ссылка;Артиккул;Название;Ед.изм;Цена по скидке; Цена; Цена по дис. карте;
-// Ссылки на картинки;Регион
-
 
 //запрос с сервера потом сделаю
 // async function fetchData() {
@@ -32,82 +29,81 @@ const preParcingData = [
     "region" : "Регион"
   },
 ];
-//функция записывающая объект
-async function getItemAfterCheck(item, targetregion){
-  //алгоритм определения актуальной цены
-  if (1){
-    return finalprice = x;
-    
-  };
-  
-  let obj = {
-    "url" : "https://www.oboykin.ru"+item.uri,
-    "vendercode" : item.article,
-    "name" : item.tovartype+" "+item.vendor.name+" "+item.article,
-    "unit" : item.unit,
-    "price" : finalprice,
-    "imageurl" : "Ссылки на картинки",
-    "region" : targetregion,
-  };
-  return obj;
-};
 
 
-//функциb getItemSpb и getItemMsk  проверяют если ли нужный к записи объект (макс 1) по соответствующему региону, если есть в наличии хотя бы 1 товар в регионе. Само количетсво товара не возвращается. Главное - факт наличия
-async function getItemSpb(item){
-  const targetregion = "Санкт-Петербург"
+//функциb getItemFromRegion  проверяют если ли нужный к записи объект (макс 1) по соответствующему региону, если есть в наличии хотя бы 1 товар в регионе. Само количетсво товара не возвращается. Главное - факт наличия
+async function getItemFromRegion(item,targetregion){
   //смотрим есть ли в наличии товар хотя бы в одном из магазинов спб.
   for (let region of item.availability){
     //если регион санкт-петербург и в нем больше 0 товара в наличии, то тогда запускается алгоритм сборки объекта, который вдальнейшем станет строкой в файле
-    if (region.shopaddress.includes(region) && region.available > 0){
-      
-  
-      let itemSpb= await getItemAfterCheck(item, targetregion);
-
-      console.log ('Вытащили товар');
-      return itemSpb;
-
+    if (region.shopaddress.includes(targetregion) && region.available > 0){
+      // console.log(`+++Найден товар в ${targetregion} в колличестве `+ region.available);
+      let finalprice;
+      if (item.sale_price!==0){    
+        finalprice = item.sale_price;
+        console.log(`Товар по акции с ценой: ${finalprice}`);
+      } else {
+        finalprice = item.price
+        console.log(`Товар со стандартной ценой или по распродаже: ${finalprice}`);
+      };
+      if(finalprice==0){
+        console.log("Нулевая цена у товара")
+      };
+      let obj = {
+        "url" : "https://www.oboykin.ru"+item.uri,
+        "vendercode" : item.article,
+        "name" : item.tovartype+" "+item.vendor.name+" "+item.article,
+        "unit" : item.unit,
+        "price" : finalprice,
+        "imageurl": item.images,
+        "region" : targetregion,
+      };
+      // console.log ('---Вытащили товар---');
+      // console.log(obj);
+      return obj;
     }else{
-      console.log("Не тот регион или нет товара в нужном регионе"+region.shopaddress +"    ===    "+ region.available )
+      // console.log("---Не тот регион или нет товара в нужном регионе"+region.shopaddress +"    ===    "+ region.available )
     }
   }
 };
 
-async function getItemMsk(item){
-  if(1){
-    let itemMsk={
-      "url" : item.uri,
-      "vendercode" : item.id,
-      "name" : item.vendor.name,
-      "unit" : item.unit,
-      "saleprice" : item.sale_price,
-      "price" : item.price,
-      "imageurl" : item.images,
-      "region" : item.availability[0].shopaddress,
-    }
-    return itemMsk
-  };
+
+//функция getGoods возвращает массив объектов (максимум 2 - москва и питер) после того как функция прошлась по item
+async function getGoodsFromAllRegions(item){
+  let itemSpb = await  getItemFromRegion(item, "Санкт-Петербург");
+  let itemMsk = await  getItemFromRegion(item, "Москва");
+  //объединяю в одни массив объектов, который состоит из 2 строк, имеющих 1 товар но в разных регионах
+  if(typeof(itemSpb)!=='undefined'&&typeof(itemMsk)!=='undefined'){
+    let targetObjects = [itemSpb,itemMsk];
+    return targetObjects;
+  }
+  else if (typeof(itemSpb)=='undefined'&&typeof(itemMsk)!=='undefined'){
+    let targetObjects = [itemMsk];
+    return targetObjects;
+  }else if(typeof(itemSpb)!=='undefined'&&typeof(itemMsk)=='undefined'){
+    let targetObjects = [itemSpb];
+    return targetObjects;
+  }else if(typeof(itemSpb)=='undefined'&&typeof(itemMsk)=='undefined'){
+    console.log("Ни в одном регионе нет товара")
+  }
 };
 
-//функция getGoods возвращает массив объектов (максимум 2) после того как функция прошлась по item
-async function getGoods(item){
-  let itemSpb = await  getItemSpb(item);
-  let itemMsk = await getItemMsk(item);
-  let targetObjects = [itemSpb,itemMsk];
-  return targetObjects;
-};
-//сборка массива объекта. обращаемся к каждому товару в items (результате запроса)
+//сборка массива объекта. обращаемся к каждому товару (объекту) в items (массиву объектов) (результате запроса)
 for (let item of shopdata.items){
-  //отдаем товар методу getGoods. Метод вернет массив объектов, которые будут уже готовы для записи в preparcingdata 
-  for (let good of getGoods(item)){
-    //каждый готовый объект из метода getGoods записываем в массив объектов preParcingData для дальнейшей записи 
-    preParcingData.push(good)
-  };
+  let targetObjects = await getGoodsFromAllRegions(item);
+  console.log(":::Результат вывода объектов:::");
+  console.log(targetObjects);
+  //отдаем товар методу getGoodsFromAllRegions. Метод вернет массив объектов, которые будут уже готовы для записи в preparcingdata 
+  if(typeof(targetObjects)!=='undefined'){
+    for (let good of targetObjects ){
+      //каждый готовый объект из метода getGoods добавляем в массив объектов preParcingData для дальнейшей записи 
+      preParcingData.push(good)
+    };
+  }  
 };
 
 //записываю весь массив объектов preParcingData в csv файл построчно
-// убрат
-// fs.writeFileSync("result.csv", 'Ссылка;Артиккул;Название;Ед.изм;Цена по скидке; Цена; Цена по дис. карте;Ссылки на картинки;Регион');
+//запись в csv происходит одномоментно, поэтому нужно перед записью приготовить массив объектов preParcingData
 const separator = ";"
 //дробление массива объектов на объекты через map
 fs.writeFileSync("result.csv", preParcingData.map(row => {
