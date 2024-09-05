@@ -1,0 +1,10 @@
+https://www.oboykin.ru/filter/products?begin=0&end=40857&uri=%2Fcatalog%2Foboi
+https://www.oboykin.ru/filter/products?begin=32&end=64&uri=%2Fcatalog%2Flepnoj-dekor
+https://www.oboykin.ru/filter/products?begin=32&end=64&uri=%2Fcatalog%2Fkraska
+https://www.oboykin.ru/filter/products?begin=32&end=64&uri=%2Fcatalog%2Ffotooboi
+https://www.oboykin.ru/filter/products?begin=32&end=64&uri=%2Fcatalog%2Ffreski
+https://www.oboykin.ru/filter/products?begin=32&end=64&uri=%2Fcatalog%2Fdecor
+https://www.oboykin.ru/filter/products?begin=32&end=64&uri=%2Fcatalog%2Ftekstil%2F
+https://www.oboykin.ru/filter/products?begin=32&end=64&uri=%2Fcatalog%2Fnapolnyie-pokryitiya
+https://www.oboykin.ru/filter/products?begin=32&end=64&uri=%2Fcatalog%2Fklej
+https://www.oboykin.ru/filter/products?begin=32&end=64&uri=%2Fcatalog%2Finstrument

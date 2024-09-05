@@ -33,24 +33,33 @@ const preParcingData = [
 
 //функциb getItemFromRegion  проверяют если ли нужный к записи объект (макс 1) по соответствующему региону, если есть в наличии хотя бы 1 товар в регионе. Само количетсво товара не возвращается. Главное - факт наличия
 async function getItemFromRegion(item,targetregion){
+  let substringsOfRegionNames;
+  if(targetregion=='Санкт-Петербург'){
+    substringsOfRegionNames = ['г. Санкт-Петербург','г. Колпино'];
+  } else if (targetregion=='Москва'){
+    substringsOfRegionNames = ['Москва','Московская обл'];
+  };
+
   //смотрим есть ли в наличии товар хотя бы в одном из магазинов спб.
   for (let region of item.availability){
     //если регион санкт-петербург и в нем больше 0 товара в наличии, то тогда запускается алгоритм сборки объекта, который вдальнейшем станет строкой в файле
-    if (region.shopaddress.includes(targetregion) && region.available > 0){
-      // console.log(`+++Найден товар в ${targetregion} в колличестве `+ region.available);
+    if (substringsOfRegionNames.some(substring => region.shopaddress.includes(substring)) &&
+    (region.available > 0 || region.onsale > 0))
+    {
+      console.log(`+++Найден товар в ${region.shopaddress} в колличестве `+ region.available + region.onsale);
       let finalprice;
       if (item.sale_price!==0){    
         finalprice = item.sale_price;
-        console.log(`Товар по акции с ценой: ${finalprice}`);
+        // console.log(`Товар по акции с ценой: ${finalprice}`);
       } else {
         finalprice = item.price
-        console.log(`Товар со стандартной ценой или по распродаже: ${finalprice}`);
+        // console.log(`Товар со стандартной ценой или по распродаже: ${finalprice}`);
       };
       if(finalprice==0){
-        console.log("Нулевая цена у товара")
+        // console.log("Нулевая цена у товара")
       };
       let obj = {
-        "url" : "https://www.oboykin.ru"+item.uri,
+        "url" : "https://www.oboykin.ru/"+item.uri,
         "vendercode" : item.article,
         "name" : item.tovartype+" "+item.vendor.name+" "+item.article,
         "unit" : item.unit,
@@ -72,27 +81,26 @@ async function getItemFromRegion(item,targetregion){
 async function getGoodsFromAllRegions(item){
   let itemSpb = await  getItemFromRegion(item, "Санкт-Петербург");
   let itemMsk = await  getItemFromRegion(item, "Москва");
-  //объединяю в одни массив объектов, который состоит из 2 строк, имеющих 1 товар но в разных регионах
+  //объединяю собираю массив из вытащенных товаров по регионам. Если найден товар в обоих регионах - то в массив кладется 2 товара. Если только в 1 регионе - то только один.
   if(typeof(itemSpb)!=='undefined'&&typeof(itemMsk)!=='undefined'){
     let targetObjects = [itemSpb,itemMsk];
     return targetObjects;
-  }
-  else if (typeof(itemSpb)=='undefined'&&typeof(itemMsk)!=='undefined'){
+  }else if (typeof(itemSpb)=='undefined'&&typeof(itemMsk)!=='undefined'){
     let targetObjects = [itemMsk];
     return targetObjects;
   }else if(typeof(itemSpb)!=='undefined'&&typeof(itemMsk)=='undefined'){
     let targetObjects = [itemSpb];
     return targetObjects;
   }else if(typeof(itemSpb)=='undefined'&&typeof(itemMsk)=='undefined'){
-    console.log("Ни в одном регионе нет товара")
+    // console.log("Ни в одном регионе нет товара  "+item.tovartype+" "+item.vendor.name+" "+item.article)
   }
 };
 
 //сборка массива объекта. обращаемся к каждому товару (объекту) в items (массиву объектов) (результате запроса)
 for (let item of shopdata.items){
   let targetObjects = await getGoodsFromAllRegions(item);
-  console.log(":::Результат вывода объектов:::");
-  console.log(targetObjects);
+  // console.log(":::Результат вывода объектов:::");
+  // console.log(targetObjects);
   //отдаем товар методу getGoodsFromAllRegions. Метод вернет массив объектов, которые будут уже готовы для записи в preparcingdata 
   if(typeof(targetObjects)!=='undefined'){
     for (let good of targetObjects ){
