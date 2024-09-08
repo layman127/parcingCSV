@@ -3,20 +3,18 @@ import got from 'got';
 import { performance } from 'perf_hooks';
 
 //замеры используемой ОЗУ
-/*
+
 setInterval(() => {
   const memoryUsage = process.memoryUsage();
   console.log('-------------------');
   console.log(`RSS: ${memoryUsage.rss / 1024 / 1024} MB`);
   console.log('-------------------');
-}, 10000); // вывод каждые 10 секунд
-*/
+}, 30000); // вывод каждые 30 секунд
+
 //функция для задержки между запросам
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-
 // Запуск таймера
 const start = performance.now();
 //создание первой строки scv документа, которая будет являться заголовками столбцов
@@ -41,7 +39,7 @@ async function creatingSCV(preParcingData) {
   //дробление массива объектов на объекты через map
   fs.writeFileSync("result.csv", preParcingData.map(row => {
       //дробление объекта на свойства по ключам
-      console.log(`Записы товара в CSV : `+preParcingData.indexOf(row) );
+      // console.log(`Записы товара в CSV : `+preParcingData.indexOf(row) );
       const valuesOfObject = [];
       for (const key in row) {
         //собираю данные из свойств объекта в массив valuesOfObject
@@ -63,8 +61,10 @@ async function creatingSCV(preParcingData) {
 async function creatingPreparcingData(preParcingData) {
   console.log("Start function creatingPreparcingData")
   //вызов и ожидание выполнения функции getShopData, которая запрашивает данные с сайта обойкина
-  let shopdata = await getShopData();
-  // console.log(shopdata)
+  await getShopData();
+  let shopdata = await fs.promises.readFile('./shopdatanew.json', 'utf-8');
+  shopdata = JSON.parse(shopdata);
+  console.log("Amout of donwloaded items in shopdatanew.json ==="+shopdata.length)
   for (let item of shopdata){
     //вызов и  ожидание функции getGoodsFromAllRegions, которая должная вернуть от 0 до 2 объектов для записи по каждому товару из shopdata
     let targetObjects = await getGoodsFromAllRegions(item);
@@ -83,11 +83,14 @@ async function creatingPreparcingData(preParcingData) {
 //функция getShopData, которая выполняет запрос на сервер обойкина.
 async function getShopData() {  
   console.log("Start function getShopData from server")
+  await fs.promises.writeFile('shopdatanew.json', '[\n');
+  console.log(`Temp file shopdatanew.json created `)
   try {
     // Получаем общее количество товаров
     const responseTotalItemsNumber = await got('https://www.oboykin.ru/filter/products?begin=0&end=1');
     let responseTotalItemsNumberJSON = await JSON.parse(responseTotalItemsNumber.body);
     let totalItemsNumber = await responseTotalItemsNumberJSON.total;
+    // let totalItemsNumber = 100;
     console.log("C сервера будет запрошено товаров: "+totalItemsNumber);
     let amoutOfFullRequests = Math.floor(totalItemsNumber/32); //получим количество целых запросов
     console.log(`amoutOfFullRequests == ${amoutOfFullRequests} `);
@@ -99,12 +102,32 @@ async function getShopData() {
     let begin = 0
     let end = 32
     let shopdataEndFlag=false
+
+    let first = true;
+
     while(!shopdataEndFlag){
-      await delay(100);
+      // await delay(100);
+      const startReq = performance.now();
       let responseShopData = await got(`https://www.oboykin.ru/filter/products?begin=${begin}&end=${end}`);
+      const endReq = performance.now();
+      let reqTime = Math.floor(endReq - startReq);
+      console.log(`Make request from ${begin} to ${end} items by ${reqTime} ms `);
+
       let itemsOneResponse = await JSON.parse(responseShopData.body);
-      shopdata.push(...itemsOneResponse.items)
-      console.log(`Cделан запрос от ${begin} до ${end}`);
+    
+      // Цикл по каждому объекту (товару) внутри itemsOneResponse.items
+      for (let item of itemsOneResponse.items) {
+        // Если это не первый элемент, добавляем запятую перед следующим объектом
+        if (!first) {
+          await fs.promises.appendFile('shopdatanew.json', ',\n');
+        }
+    
+        // Записываем объект в файл
+        await fs.promises.appendFile('shopdatanew.json', JSON.stringify(item, null, 2));
+        first = false; // После первого элемента
+      }
+      
+      // shopdata.push(...itemsOneResponse.items)
       if(end<prelastItemNumber){
           begin += 32;
           end += 32;
@@ -113,16 +136,26 @@ async function getShopData() {
           begin += 32;
           end += amountOfLastItems;
           let responseShopDataLast = await got(`https://www.oboykin.ru/filter/products?begin=${begin}&end=${end}`);
-          let itemsOneResponseLast = await JSON.parse(responseShopDataLast.body);
-          shopdata.push(...itemsOneResponseLast.items)
-          console.log(`Cделан запрос от ${begin} до ${end}`);
+          let itemsOneResponseLast = await JSON.parse(responseShopDataLast.body);         
+          // shopdata.push(...itemsOneResponseLast.items)
+          console.log(`Make request from ${begin} to ${end} items`);
           console.log(`End ${end}`)
+
+
+              // Цикл по последним элементам
+          for (let item of itemsOneResponseLast.items) {
+            if (!first) {
+              await fs.promises.appendFile('shopdatanew.json', ',\n');
+            }
+            await fs.promises.appendFile('shopdatanew.json', JSON.stringify(item, null, 2));
+            first = false;
+          }
+
+          await fs.promises.appendFile('shopdatanew.json', '\n]');
+
           shopdataEndFlag=true;   
       }; 
-    };
-    //файл для отладки
-    // await fs.promises.writeFile('shopdatanew.json', JSON.stringify(shopdata, null, 2));
-    console.log("C сервера получено товаров: "+shopdata.length);
+    };    
     console.log("Finish function getShopData from server")
     return shopdata;
 
@@ -133,7 +166,7 @@ async function getShopData() {
     console.error(`${status} ${body}`);
     throw error;  // Перебрасываем ошибку выше для дальнейшей обработки
   }
-}
+};
 //функция getGoodsFromAllRegions возвращающая массив объектв для записи в preparcingData
 async function getGoodsFromAllRegions(item){
   let itemSpb = await  getItemFromRegion(item, "Санкт-Петербург");
