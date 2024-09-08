@@ -20,13 +20,15 @@ return new Promise(resolve => setTimeout(resolve, ms));
 
 //---функциональная часть---
 let path;
+let nameCSV;
 start();
-export async function start(pathToCSV='./result.csv'){
+export async function start(pathToCSV='./', nameOfFile='result.csv'){
     path = pathToCSV;
+    nameCSV = nameOfFile;
     // Запуск таймера
     const start = performance.now();
     //создание файла csv c требуемыми столбцами
-    await fs.promises.writeFile(`${path}`, 'url;vendor_code;name;unit;ptice;image_url;region');
+    await fs.promises.writeFile(`${path}${nameCSV}`, 'url;vendor_code;name;unit;ptice;image_url;region');
     console.log(`File result.csv created `)
     //вызов функции, выполняющеи запросы на сервер
     await getItemsFromServer(path);
@@ -104,14 +106,14 @@ async function saveGoodsFromAllRegions(item){
     if(itemSpb != null){
         const values = Object.values(itemSpb);
         // Добавляем строку в файл
-        fs.appendFile(`${path}`, `\n${values.join(separator)}`, (err) => {
+        fs.appendFile(`${path}${nameCSV}`, `\n${values.join(separator)}`, (err) => {
             if (err) throw err;
         }); 
     };    
     if(itemMsk != null){
         const values = Object.values(itemMsk);
         // Добавляем строку в файл
-        fs.appendFile(`${path}`, `\n${values.join(separator)}`, (err) => {
+        fs.appendFile(`${path}${nameCSV}`, `\n${values.join(separator)}`, (err) => {
             if (err) throw err;
         });
     };
