@@ -6,7 +6,7 @@ node index.js
 ---Задача:
 Скрипт создан для парсинга товаров с сайта магазина "Обойкин" в CSV файл путем обработки запросов API GET https://www.oboykin.ru/filter/products
 
----Структура скрипта:
+---Структура скрипта: - неактуально!!!!
 Скрипт представляет собой набор функций выполняющих сдедующее:
 1) сreatingSCV() - главная собирающая функция.  Вызывает функцию creatingPreparcingData() , которая возвращает готовый массив объектов PreparcingData и создает на его основании файл result.csv
 2) creatingPreparcingData() - функция, создающая  готовый массив объекто PreparcingData , который возвращает для функции сreatingSCV(). Вызывает две функции: getShopData() и getGoodsFromAllRegions(item)
