@@ -76,7 +76,7 @@ async function saveItemFromOneRegion(item,targetregion,fullPath){
             };
             //если в итоге цена равна нулю, то нам эта интерация неинтересна, пропускаем товар
             if(finalprice==0){
-                continue;
+                break;
             };
             if(item.tovartype == 'Каталог'){
                 break;
