@@ -65,7 +65,7 @@ async function saveItemFromOneRegion(item,targetregion,fullPath){
     //смотрим есть ли в наличии товар хотя бы в одном из магазинов спб.
     for (let region of item.availability){
         //если регион санкт-петербург и в нем больше 0 товара в наличии, то тогда запускается алгоритм сборки объекта, который вдальнейшем станет строкой в файле
-        if (substringsOfRegionNames.some(substring => region.shopaddress.includes(substring)) && (region.available > 0 || region.onsale > 0)){
+        if (substringsOfRegionNames.some(substring => region.shopaddress.includes(substring))){
             let finalprice;
             //проверяем есть ли цена по акции
             if (item.sale_price!==0){    
@@ -77,6 +77,9 @@ async function saveItemFromOneRegion(item,targetregion,fullPath){
             //если в итоге цена равна нулю, то нам эта интерация неинтересна, пропускаем товар
             if(finalprice==0){
                 continue;
+            };
+            if(item.tovartype == 'Каталог'){
+                break;
             };
             let obj = {
                 "url" : "https://www.oboykin.ru/"+item.uri,
